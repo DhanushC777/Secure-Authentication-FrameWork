@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureAuth — Login</title>
+  <meta name="description" content="Secure multi-factor authentication login portal with brute-force protection.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1zm0 4.18l5 2.23V11c0 3.54-2.34 6.84-5 7.93-2.66-1.09-5-4.39-5-7.93V7.41L12 5.18z"/>
+          </svg>
+        </div>
+        <h1>SecureAuth OS</h1>
+        <p>Multi-Factor Authentication Framework</p>
+      </div>
+
+      <!-- Error alert -->
+      {% if error %}
+      <div class="alert alert-error" role="alert">
+        <span class="alert-icon">⚠</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+          <span class="alert-icon">{% if category == 'success' %}✓{% else %}⚠{% endif %}</span>
+          <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+      {% endwith %}
+
+      <!-- Login form -->
+      <form method="POST" id="login-form" novalidate>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              autocomplete="username"
+              required
+              autofocus
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+            <button type="button" class="toggle-pw" id="toggle-pw" aria-label="Toggle password visibility">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="login-btn">Sign In Securely →</button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <div class="auth-links">
+        Don't have an account? <a href="{{ url_for('register') }}">Create Account</a>
+      </div>
+
+    </div><!-- /.auth-card -->
+  </div><!-- /.auth-wrapper -->
+
+  <script>
+    // Toggle password visibility
+    document.getElementById('toggle-pw').addEventListener('click', function () {
+      const pw = document.getElementById('password');
+      pw.type = pw.type === 'password' ? 'text' : 'password';
+      this.textContent = pw.type === 'password' ? '👁' : '🙈';
+    });
+
+    // Disable button on submit to prevent double-submit
+    document.getElementById('login-form').addEventListener('submit', function () {
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.textContent = 'Authenticating…';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureAuth — Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body { align-items: flex-start; padding: 0; background: var(--bg-deep); }
+    .page { display: flex; min-height: 100vh; width: 100%; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: rgba(255,255,255,0.03);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 28px 0; position: sticky; top: 0; height: 100vh;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px 28px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .sidebar-logo span { font-weight: 700; font-size: 1rem; }
+
+    .nav-section { padding: 20px 12px 8px; }
+    .nav-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding: 0 8px; margin-bottom: 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      color: var(--text-muted); font-size: 0.88rem; font-weight: 500;
+      transition: background 0.2s, color 0.2s; text-decoration: none; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .nav-item.active { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .nav-item .icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    .sidebar-footer { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--border); }
+    .user-pill {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.04);
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; color: #fff; flex-shrink: 0;
+    }
+    .user-pill-info { flex: 1; overflow: hidden; }
+    .user-pill-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-pill-role { font-size: 0.7rem; color: var(--success); }
+
+    /* Main */
+    .main { flex: 1; padding: 36px 36px 60px; max-width: 960px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .topbar h1 { font-size: 1.5rem; font-weight: 800; }
+    .topbar p  { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+    .badge-online {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
+      color: #6ee7b7; border-radius: 999px; padding: 6px 14px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .badge-online::before { content:'●'; color:#10b981; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* Stats row */
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); background: rgba(255,255,255,0.07); }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 12px; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .stat-change { font-size: 0.72rem; color: var(--success); margin-top: 8px; }
+
+    /* Two-col */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+    /* Panel */
+    .panel {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px;
+    }
+    .panel-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .panel-title span { font-size: 1rem; }
+
+    /* Security score ring */
+    .score-wrap { display: flex; align-items: center; gap: 20px; }
+    .ring { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
+    .ring-fill { fill: none; stroke: url(#grad); stroke-width: 8; stroke-linecap: round;
+      stroke-dasharray: 220; stroke-dashoffset: 33; transition: stroke-dashoffset 1s ease; }
+    .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-label .score { font-size: 1.3rem; font-weight: 800; }
+    .ring-label .score-sub { font-size: 0.6rem; color: var(--text-muted); }
+    .score-details { flex: 1; }
+    .score-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .score-item-label { font-size: 0.8rem; color: var(--text-muted); }
+    .score-bar { width: 100px; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+    /* Activity log */
+    .activity-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .activity-item { display: flex; align-items: flex-start; gap: 12px; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .dot-green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .dot-blue  { background: var(--accent);  box-shadow: 0 0 6px var(--accent); }
+    .dot-warn  { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+    .activity-text { font-size: 0.82rem; color: var(--text-primary); }
+    .activity-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* MFA status */
+    .mfa-list { display: flex; flex-direction: column; gap: 12px; }
+    .mfa-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+    .mfa-left { display: flex; align-items: center; gap: 10px; }
+    .mfa-icon { font-size: 1.2rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 8px; }
+    .mfa-name { font-size: 0.85rem; font-weight: 600; }
+    .mfa-desc { font-size: 0.72rem; color: var(--text-muted); }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+    .tag-on  { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+    .tag-off { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* Logout button */
+    .btn-logout {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; background: rgba(244,63,94,0.12);
+      border: 1px solid rgba(244,63,94,0.3); color: #fda4af;
+      border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      text-decoration: none; transition: background 0.2s, transform 0.15s;
+    }
+    .btn-logout:hover { background: rgba(244,63,94,0.22); transform: translateY(-1px); }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+      .main { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛡</div>
+      <span>SecureAuth</span>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a class="nav-item active" href="#"><span class="icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="#security"><span class="icon">🔐</span> Security</a>
+      <a class="nav-item" href="#activity"><span class="icon">📋</span> Activity</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a class="nav-item" href="#"><span class="icon">👤</span> Profile</a>
+      <a class="nav-item" href="#"><span class="icon">⚙️</span> Settings</a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="avatar">{{ username[0]|upper }}</div>
+        <div class="user-pill-info">
+          <div class="user-pill-name">{{ username }}</div>
+          <div class="user-pill-role">● Verified User</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div>
+        <h1>Welcome back, {{ username }} 👋</h1>
+        <p>Your security dashboard — everything looks good.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="badge-online">Session Active</span>
+        <a href="{{ url_for('logout') }}" class="btn-logout">🚪 Logout</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon">🔐</div>
+        <div class="stat-value" style="color:#4f8ef7">100%</div>
+        <div class="stat-label">Security Score</div>
+        <div class="stat-change">↑ MFA enabled</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" style="color:#10b981">Active</div>
+        <div class="stat-label">Account Status</div>
+        <div class="stat-change">No violations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔑</div>
+        <div class="stat-value" style="color:#a78bfa">2FA</div>
+        <div class="stat-label">Auth Method</div>
+        <div class="stat-change">Password + OTP</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🚫</div>
+        <div class="stat-value" style="color:#f59e0b">0</div>
+        <div class="stat-label">Failed Logins</div>
+        <div class="stat-change">All clear</div>
+      </div>
+    </div>
+
+    <!-- Two col: Security Score + Activity -->
+    <div class="two-col">
+
+      <!-- Security Score -->
+      <div class="panel" id="security">
+        <div class="panel-title"><span>🛡</span> Security Score</div>
+        <div class="score-wrap">
+          <div class="ring">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <defs>
+                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#4f8ef7"/>
+                  <stop offset="100%" style="stop-color:#7c3aed"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="45" cy="45" r="35"/>
+              <circle class="ring-fill" cx="45" cy="45" r="35"/>
+            </svg>
+            <div class="ring-label">
+              <span class="score">85</span>
+              <span class="score-sub">/ 100</span>
+            </div>
+          </div>
+          <div class="score-details">
+            <div class="score-item">
+              <span class="score-item-label">Password</span>
+              <div class="score-bar"><div class="score-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="score-item">
+              <span class="score-item-label">MFA (OTP)</span>
+              <div class="score-bar"><div class="score-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="score-item">
+              <span class="score-item-label">Brute Force</span>
+              <div class="score-bar"><div class="score-bar-fill" style="width:90%"></div></div>
+            </div>
+            <div class="score-item">
+              <span class="score-item-label">Session</span>
+              <div class="score-bar"><div class="score-bar-fill" style="width:70%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="panel" id="activity">
+        <div class="panel-title"><span>📋</span> Recent Activity</div>
+        <ul class="activity-list">
+          <li class="activity-item">
+            <div class="activity-dot dot-green"></div>
+            <div>
+              <div class="activity-text">Login successful via MFA</div>
+              <div class="activity-time">Just now</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-dot dot-blue"></div>
+            <div>
+              <div class="activity-text">OTP verification passed</div>
+              <div class="activity-time">Just now</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-dot dot-blue"></div>
+            <div>
+              <div class="activity-text">Password authenticated (bcrypt)</div>
+              <div class="activity-time">Just now</div>
+            </div>
+          </li>
+          <li class="activity-item">
+            <div class="activity-dot dot-warn"></div>
+            <div>
+              <div class="activity-text">Account registered</div>
+              <div class="activity-time">Earlier today</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- MFA Status -->
+    <div class="panel">
+      <div class="panel-title"><span>🔑</span> Authentication Methods</div>
+      <div class="mfa-list">
+        <div class="mfa-row">
+          <div class="mfa-left">
+            <div class="mfa-icon">🔒</div>
+            <div>
+              <div class="mfa-name">Password (bcrypt)</div>
+              <div class="mfa-desc">Strong policy enforced — 10+ chars, mixed case, symbols</div>
+            </div>
+          </div>
+          <span class="tag tag-on">Active</span>
+        </div>
+        <div class="mfa-row">
+          <div class="mfa-left">
+            <div class="mfa-icon">📲</div>
+            <div>
+              <div class="mfa-name">One-Time Password (OTP)</div>
+              <div class="mfa-desc">6-digit code, 5-minute expiry, auto-verified</div>
+            </div>
+          </div>
+          <span class="tag tag-on">Active</span>
+        </div>
+        <div class="mfa-row">
+          <div class="mfa-left">
+            <div class="mfa-icon">🚫</div>
+            <div>
+              <div class="mfa-name">Brute-Force Lock</div>
+              <div class="mfa-desc">Account locks after 5 failed attempts for 60 seconds</div>
+            </div>
+          </div>
+          <span class="tag tag-on">Active</span>
+        </div>
+        <div class="mfa-row">
+          <div class="mfa-left">
+            <div class="mfa-icon">🔑</div>
+            <div>
+              <div class="mfa-name">Hardware Key (FIDO2)</div>
+              <div class="mfa-desc">Physical security key support</div>
+            </div>
+          </div>
+          <span class="tag tag-off">Not Configured</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

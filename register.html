@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureAuth — Create Account</title>
+  <meta name="description" content="Register a new account with a strong, policy-enforced password.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1zm0 4.18l5 2.23V11c0 3.54-2.34 6.84-5 7.93-2.66-1.09-5-4.39-5-7.93V7.41L12 5.18z"/>
+          </svg>
+        </div>
+        <h1>Create Account</h1>
+        <p>Join SecureAuth — Protected by MFA</p>
+      </div>
+
+      <!-- Error alert -->
+      {% if error %}
+      <div class="alert alert-error" role="alert">
+        <span class="alert-icon">⚠</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Register form -->
+      <form method="POST" id="register-form" novalidate>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Choose a username"
+              autocomplete="username"
+              minlength="3"
+              required
+              autofocus
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Create a strong password"
+              autocomplete="new-password"
+              required
+            >
+            <button type="button" class="toggle-pw" id="toggle-pw" aria-label="Toggle password visibility">👁</button>
+          </div>
+          <!-- Strength bar -->
+          <div class="strength-bar"><div class="strength-bar-fill" id="strength-fill"></div></div>
+          <div class="strength-label" id="strength-label">Enter a password to check strength</div>
+        </div>
+
+        <!-- Live password policy checklist -->
+        <ul class="policy-list" id="policy-list">
+          <li id="p-len">At least 10 characters</li>
+          <li id="p-upper">At least one uppercase letter (A–Z)</li>
+          <li id="p-lower">At least one lowercase letter (a–z)</li>
+          <li id="p-digit">At least one digit (0–9)</li>
+          <li id="p-special">At least one special character (!@#$%…)</li>
+        </ul>
+
+        <br>
+        <button type="submit" class="btn-primary" id="reg-btn">Create Account →</button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <div class="auth-links">
+        Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const pwInput     = document.getElementById('password');
+    const fill        = document.getElementById('strength-fill');
+    const label       = document.getElementById('strength-label');
+    const toggleBtn   = document.getElementById('toggle-pw');
+
+    const rules = {
+      'p-len':     pw => pw.length >= 10,
+      'p-upper':   pw => /[A-Z]/.test(pw),
+      'p-lower':   pw => /[a-z]/.test(pw),
+      'p-digit':   pw => /[0-9]/.test(pw),
+      'p-special': pw => /[!@#$%^&*()\-_+=\[\]{}|;:,.<>?]/.test(pw),
+    };
+
+    const strength = [
+      { max: 1, color: '#f43f5e', text: 'Very Weak' },
+      { max: 2, color: '#f97316', text: 'Weak' },
+      { max: 3, color: '#f59e0b', text: 'Fair' },
+      { max: 4, color: '#84cc16', text: 'Good' },
+      { max: 5, color: '#10b981', text: 'Strong 🔐' },
+    ];
+
+    pwInput.addEventListener('input', function () {
+      const pw = this.value;
+      let passed = 0;
+
+      for (const [id, fn] of Object.entries(rules)) {
+        const li = document.getElementById(id);
+        if (fn(pw)) { li.classList.add('met'); passed++; }
+        else         { li.classList.remove('met'); }
+      }
+
+      const pct = (passed / 5) * 100;
+      const s   = strength[Math.max(0, passed - 1)] || strength[0];
+      fill.style.width      = pct + '%';
+      fill.style.background = s.color;
+      label.textContent     = pw.length ? s.text : 'Enter a password to check strength';
+      label.style.color     = pw.length ? s.color : '';
+    });
+
+    // Toggle visibility
+    toggleBtn.addEventListener('click', function () {
+      pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+      this.textContent = pwInput.type === 'password' ? '👁' : '🙈';
+    });
+
+    // Disable on submit
+    document.getElementById('register-form').addEventListener('submit', function () {
+      const btn = document.getElementById('reg-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating Account…';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureAuth — OTP Verification</title>
+  <meta name="description" content="Enter your one-time password to complete multi-factor authentication.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1zm0 4.18l5 2.23V11c0 3.54-2.34 6.84-5 7.93-2.66-1.09-5-4.39-5-7.93V7.41L12 5.18z"/>
+          </svg>
+        </div>
+        <h1>Verify Identity</h1>
+        <p>Step 2 of 2 — One-Time Password</p>
+      </div>
+
+      <!-- Error alert -->
+      {% if error %}
+      <div class="alert alert-error" role="alert">
+        <span class="alert-icon">⚠</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Info -->
+      <div class="otp-info">
+        <p>Your OTP has been generated and filled below automatically.<br>
+        <small style="color:#64748b">(In production, this is sent via SMS/email)</small></p>
+      </div>
+
+      <!-- OTP Form — visible with auto-filled input -->
+      <form method="POST" id="otp-form" novalidate>
+        <div class="form-group">
+          <label for="otp">One-Time Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔑</span>
+            <input
+              type="text"
+              id="otp"
+              name="otp"
+              placeholder="Auto-filling OTP…"
+              maxlength="6"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              required
+              autofocus
+              value="{{ demo_otp }}"
+            >
+          </div>
+        </div>
+
+        <!-- Countdown timer -->
+        <div class="otp-timer" id="otp-timer">
+          ⏱ OTP expires in <span id="countdown">05:00</span>
+        </div>
+        <br>
+
+        <button type="submit" class="btn-primary" id="otp-btn">Verify OTP →</button>
+      </form>
+
+      <div class="divider">changed your mind?</div>
+      <div class="auth-links">
+        <a href="{{ url_for('login') }}">← Back to Login</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Countdown timer (5 min) ──
+    let seconds = 300;
+    const display = document.getElementById('countdown');
+    const timerEl = document.getElementById('otp-timer');
+
+    const interval = setInterval(() => {
+      seconds--;
+      if (seconds <= 0) {
+        clearInterval(interval);
+        timerEl.style.color = '#f43f5e';
+        timerEl.textContent = '⚠ OTP expired — please login again.';
+        return;
+      }
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      display.textContent = `${m}:${s}`;
+      if (seconds <= 60) timerEl.style.color = '#f43f5e';
+    }, 1000);
+
+    // ── Auto-type animation: show the OTP being typed in character by character ──
+    const otpInput = document.getElementById('otp');
+    const fullOtp  = "{{ demo_otp }}";
+
+    if (fullOtp) {
+      otpInput.value = '';        // clear first so animation is visible
+      otpInput.placeholder = '';
+      let i = 0;
+      const typeInterval = setInterval(() => {
+        if (i < fullOtp.length) {
+          otpInput.value += fullOtp[i];
+          i++;
+        } else {
+          clearInterval(typeInterval);
+          // Brief highlight flash after typing completes
+          otpInput.style.borderColor = 'rgba(99,179,237,0.8)';
+          otpInput.style.boxShadow   = '0 0 0 3px rgba(99,179,237,0.2)';
+        }
+      }, 120);  // types one digit every 120ms
+    }
+
+    // Only allow digits if user edits manually
+    otpInput.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    // Disable button on submit
+    document.getElementById('otp-form').addEventListener('submit', function () {
+      const btn = document.getElementById('otp-btn');
+      btn.disabled = true;
+      btn.textContent = 'Verifying…';
+    });
+  </script>
+</body>
+</html>
